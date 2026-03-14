@@ -27,13 +27,10 @@ sed -i 's/use Joomla\\CMS\\Filesystem\\Folder;/use Joomla\\Filesystem\\Folder;/'
 
 In Joomla 6, the `Joomla\CMS\Filesystem` classes were moved to `Joomla\Filesystem`. Without this fix, the Akeeba Engage admin panel throws an "Unhandled Exception" error.
 
-## Maintained by
-
-This fork is maintained by [TheAIDirector.win](https://theaidirector.win) — a Joomla site dedicated to AI tools, automation, and practical guides for people who actually use AI.
-
 ## Disclaimer
 
-- This patch was created using **Claude Code** (AI coding agent by Anthropic) for [TheAIDirector.win](https://theaidirector.win)
+- This is a **one-time fix**, not an actively maintained fork
+- Patched by [TheAIDirector.win](https://theaidirector.win) using **Claude Code** (AI coding agent by Anthropic)
 - This fork is **not affiliated with or endorsed by Akeeba Ltd**
 - The original software was written by **Nicholas K. Dionysopoulos / Akeeba Ltd**
 - **Use at your own risk** — always review changes before deploying to production
