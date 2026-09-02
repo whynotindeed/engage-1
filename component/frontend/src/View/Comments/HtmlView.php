@@ -187,7 +187,7 @@ class HtmlView extends BaseHtmlView
 		]);
 
 		// User information
-		$this->user         = Factory::getUser();
+		$this->user         = Factory::getApplication()->getIdentity();
 		$this->perms        = array_merge($this->perms, [
 				'create' => $this->user->authorise('core.create', 'com_engage'),
 				'edit'   => $this->user->authorise('core.edit', 'com_engage'),
