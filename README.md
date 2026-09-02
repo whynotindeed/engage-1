@@ -1,47 +1,51 @@
-# Akeeba Engage — Joomla 6 Compatibility Fork
+# Akeeba Engage — fork Joomla 6 + importador de CComment
 
-**Unofficial fork with Joomla 6 compatibility patch.**
+Fork **no oficial** de [Akeeba Engage](https://github.com/akeeba/engage) (componente de comentarios para artículos de Joomla). Linaje:
 
-The original [Akeeba Engage](https://github.com/akeeba/engage) was archived by Akeeba Ltd in August 2025. This fork applies a minimal namespace fix so the extension works on Joomla 6.
+1. **Akeeba Ltd / Nicholas K. Dionysopoulos** — proyecto original (archivado en agosto de 2025, última versión 3.4.3).
+2. **[whynotindeed/engage-1](https://github.com/whynotindeed/engage-1)** — parche de compatibilidad con Joomla 6 (namespaces de `Filesystem`).
+3. **Este build (kumori)** — añade preparación para J7, un `make-zip.sh` autónomo y un **importador de comentarios desde CComment**.
 
-**TL;DR:** Replace `Joomla\CMS\Filesystem` with `Joomla\Filesystem` in 4 use statements across 3 files. That's it. If you'd rather patch the original yourself instead of using this fork:
+## Qué incluye este build
+
+### Compatibilidad Joomla 6 (heredado del fork upstream)
+Las clases `Joomla\CMS\Filesystem\{Path,File,Folder}` se movieron a `Joomla\Filesystem\…` en Joomla 6. El fork upstream actualizó las 4 referencias en 3 ficheros; sin ese cambio el panel de Engage lanza una excepción en J6.
+
+### Preparación Joomla 7 (añadido en este build)
+Se sustituye el deprecado `Factory::getUser()` por `Factory::getApplication()->getIdentity()` en 3 ficheros del componente (`View/Comments/HtmlView.php`, `Service/Html/Engage.php`, `Helper/HtmlFilter.php`). Funciona en J5/J6 y sobrevive a J7.
+
+### `make-zip.sh` — constructor de paquete autónomo
+Akeeba usa un build con phing (`build.xml`) que depende de los *buildfiles* de Akeeba, no incluidos aquí. `make-zip.sh` reproduce el paquete instalable sin esa cadena de herramientas:
 
 ```bash
-# From your Joomla root:
-sed -i 's/use Joomla\\CMS\\Filesystem\\Path;/use Joomla\\Filesystem\\Path;/' administrator/components/com_engage/src/Mixin/ViewLoadAnyTemplateTrait.php
-sed -i 's/use Joomla\\CMS\\Filesystem\\File;/use Joomla\\Filesystem\\File;/' administrator/components/com_engage/src/Model/UpdatesModel.php
-sed -i 's/use Joomla\\CMS\\Filesystem\\File;/use Joomla\\Filesystem\\File;/' administrator/components/com_engage/src/Model/UpgradeModel.php
-sed -i 's/use Joomla\\CMS\\Filesystem\\Folder;/use Joomla\\Filesystem\\Folder;/' administrator/components/com_engage/src/Model/UpgradeModel.php
+./make-zip.sh
+# -> dist/pkg_engage-<version>.zip
 ```
 
-## What was changed
+Requiere **Composer** (para las dependencias del backend: htmlpurifier). Si falta `component/backend/vendor`, el script ejecuta `composer install` automáticamente. Ensambla el componente + módulo + 10 plugins y los envuelve con el manifiesto de paquete (`pkg_engage.xml`), el script de instalación y los idiomas. El zip resultante se instala por **Extensiones → Instalar → Subir**.
 
-4 namespace references updated to match Joomla 6's restructured Filesystem package:
+### Importador CComment → Engage (`import/ccomment-to-engage.php`)
+Herramienta **autónoma y bajo demanda** (no se instala ni se ejecuta sola) para migrar comentarios del abandonado **CComment** (Compojoom) a Engage. No requiere arrancar Joomla: lee las credenciales de un `configuration.php`, toma los comentarios de `<prefix>comment`, resuelve el `asset_id` de cada artículo desde `<prefix>content`, e inserta en `<prefix>engage_comments`.
 
-| File | Old namespace | New namespace |
-|------|--------------|---------------|
-| `ViewLoadAnyTemplateTrait.php` | `Joomla\CMS\Filesystem\Path` | `Joomla\Filesystem\Path` |
-| `UpdatesModel.php` | `Joomla\CMS\Filesystem\File` | `Joomla\Filesystem\File` |
-| `UpgradeModel.php` | `Joomla\CMS\Filesystem\File` | `Joomla\Filesystem\File` |
-| `UpgradeModel.php` | `Joomla\CMS\Filesystem\Folder` | `Joomla\Filesystem\Folder` |
+```bash
+# 1) Prueba en seco (no cambia nada; muestra qué haría):
+php import/ccomment-to-engage.php --config=/ruta/a/configuration.php
 
-In Joomla 6, the `Joomla\CMS\Filesystem` classes were moved to `Joomla\Filesystem`. Without this fix, the Akeeba Engage admin panel throws an "Unhandled Exception" error.
+# 2) Tras revisar y hacer copia de la BD, ejecuta de verdad:
+php import/ccomment-to-engage.php --config=/ruta/a/configuration.php --commit
+```
 
-## Disclaimer
+Características: **dry-run por defecto**, re-ejecutable sin duplicar (salta los ya importados por `asset_id`+fecha+email), salta comentarios de artículos borrados, mapea estado publicado/no publicado, y convierte texto plano a HTML seguro. Opciones: `--source-table`, `--user-agent`, `--include-spam`, `--no-skip-existing`, `--limit`, `--help`.
 
-- This is a **one-time fix**, not an actively maintained fork
-- Patched by [TheAIDirector.win](https://theaidirector.win) using **Claude Code** (AI coding agent by Anthropic)
-- This fork is **not affiliated with or endorsed by Akeeba Ltd**
-- The original software was written by **Nicholas K. Dionysopoulos / Akeeba Ltd**
-- **Use at your own risk** — always review changes before deploying to production
-- No warranty is provided — test thoroughly in a staging environment first
+Requisitos: PHP CLI con `pdo_mysql`. Engage debe estar instalado (para que exista `<prefix>engage_comments`).
 
-## License
+## Aviso y licencia
 
-GNU General Public License version 3 or later. See [LICENSE](LICENSE).
+- Fork **no mantenido activamente** y **no afiliado** a Akeeba Ltd. Software original de Nicholas K. Dionysopoulos / Akeeba Ltd.
+- El parche de J6 fue obra de [TheAIDirector.win](https://theaidirector.win); las adiciones de este build (importador, `make-zip.sh`, preparación J7) se hicieron sobre ese fork.
+- **Úsalo bajo tu responsabilidad**: prueba en un entorno de staging y haz copia de la base de datos antes de importar.
+- Licencia: **GNU General Public License v3 o posterior** (ver [LICENSE](LICENSE)).
 
-## Original project
-
-- Repository: https://github.com/akeeba/engage
-- Author: Akeeba Ltd / Nicholas K. Dionysopoulos
-- Final version: 3.4.3 (archived August 2025)
+## Proyecto original
+- Repositorio: https://github.com/akeeba/engage
+- Autor: Akeeba Ltd / Nicholas K. Dionysopoulos — última versión 3.4.3 (archivado agosto 2025)
